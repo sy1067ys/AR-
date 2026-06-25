@@ -4,14 +4,11 @@ import { FurnitureItem, furnitureItems } from '../data/items';
 
 const CATEGORIES = ['すべて', 'ソファ', 'チェア', 'テーブル', '照明', '植物', '収納', '家電', 'ベッド', 'ラグ'];
 
-interface Props {
-  onAddItem: (item: FurnitureItem) => void;
-}
+interface Props { onAddItem: (item: FurnitureItem) => void; }
 
 export function RoomItemSelector({ onAddItem }: Props) {
   const [category, setCategory] = useState('すべて');
   const [customItems, setCustomItems] = useState<FurnitureItem[]>([]);
-
   const allItems = [...furnitureItems, ...customItems];
   const filtered = category === 'すべて' ? allItems : allItems.filter(i => i.category === category);
 
@@ -23,17 +20,11 @@ export function RoomItemSelector({ onAddItem }: Props) {
       const img = new Image();
       img.onload = () => {
         const aspect = img.naturalWidth / img.naturalHeight;
-        const defaultWidth = Math.min(200, img.naturalWidth);
-        const defaultHeight = Math.round(defaultWidth / aspect);
-        const item: FurnitureItem = {
-          id: `custom-${Date.now()}`,
-          name: file.name.replace(/\.[^.]+$/, ''),
-          category: 'カスタム',
-          image: ev.target?.result as string,
-          defaultWidth,
-          defaultHeight,
-        };
-        setCustomItems(prev => [...prev, item]);
+        const w = Math.min(200, img.naturalWidth);
+        setCustomItems(prev => [...prev, {
+          id: `custom-${Date.now()}`, name: file.name.replace(/\.[^.]+$/, ''),
+          category: 'カスタム', image: ev.target?.result as string, defaultWidth: w, defaultHeight: Math.round(w / aspect),
+        }]);
       };
       img.src = ev.target?.result as string;
     };
@@ -42,19 +33,20 @@ export function RoomItemSelector({ onAddItem }: Props) {
   };
 
   return (
-    <div className="flex flex-col h-full max-h-[60vh] sm:max-h-full bg-gray-900 text-white">
-      <div className="p-2 sm:p-3 border-b border-gray-700">
-        <h2 className="font-bold text-xs sm:text-sm text-gray-200 mb-1.5">家具・インテリアを追加</h2>
+    <div className="flex flex-col h-full max-h-[60vh] sm:max-h-full" style={{ background: 'var(--ar-surface)' }}>
+      <div className="p-2.5 flex-shrink-0" style={{ borderBottom: '1px solid var(--ar-border)' }}>
+        <h2 className="font-bold text-xs mb-1.5" style={{ color: 'var(--ar-text)' }}>家具・インテリア</h2>
         <div className="flex flex-wrap gap-1">
           {CATEGORIES.map(cat => (
             <button
               key={cat}
               onClick={() => setCategory(cat)}
-              className={`px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium transition-colors ${
-                category === cat
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-700 text-gray-300'
-              }`}
+              className="px-2 py-0.5 rounded-md text-[10px] font-medium transition-all"
+              style={{
+                background: category === cat ? 'var(--ar-accent)' : 'var(--ar-surface-2)',
+                color: category === cat ? '#fff' : 'var(--ar-text-muted)',
+                boxShadow: category === cat ? '0 2px 8px var(--ar-accent-glow)' : 'none',
+              }}
             >
               {cat}
             </button>
@@ -62,10 +54,13 @@ export function RoomItemSelector({ onAddItem }: Props) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 sm:p-3 grid grid-cols-3 sm:grid-cols-2 gap-1.5 sm:gap-2 content-start">
-        <label className="flex flex-col items-center justify-center gap-1 bg-gray-800 border-2 border-dashed border-gray-600 rounded-lg p-2 cursor-pointer min-h-[70px] sm:min-h-[90px]">
-          <Upload className="w-4 h-4 text-gray-400" />
-          <span className="text-[10px] sm:text-xs text-gray-400 text-center">アップロード</span>
+      <div className="flex-1 overflow-y-auto p-2 grid grid-cols-3 sm:grid-cols-2 gap-1.5 content-start">
+        <label
+          className="flex flex-col items-center justify-center gap-1 rounded-xl p-2 cursor-pointer min-h-[70px] transition-all"
+          style={{ background: 'var(--ar-surface-2)', border: '2px dashed var(--ar-surface-3)' }}
+        >
+          <Upload className="w-4 h-4" style={{ color: 'var(--ar-text-muted)' }} />
+          <span className="text-[10px]" style={{ color: 'var(--ar-text-muted)' }}>アップロード</span>
           <input type="file" accept="image/*" className="hidden" onChange={handleCustomUpload} />
         </label>
 
@@ -73,20 +68,21 @@ export function RoomItemSelector({ onAddItem }: Props) {
           <button
             key={item.id}
             onClick={() => onAddItem(item)}
-            className="flex flex-col items-center gap-0.5 bg-gray-800 border border-gray-700 rounded-lg p-1.5 sm:p-2 transition-all group min-h-[70px] sm:min-h-[90px]"
+            className="flex flex-col items-center gap-0.5 rounded-xl p-1.5 transition-all group min-h-[70px]"
+            style={{ background: 'var(--ar-surface-2)', border: '1px solid var(--ar-border)' }}
           >
             <div className="w-full flex-1 flex items-center justify-center">
-              <img src={item.image} alt={item.name} className="max-w-full max-h-10 sm:max-h-16 object-contain" />
+              <img src={item.image} alt={item.name} className="max-w-full max-h-10 sm:max-h-14 object-contain" />
             </div>
-            <span className="text-[10px] sm:text-xs text-gray-300 truncate w-full text-center leading-tight">
+            <span className="text-[10px] truncate w-full text-center" style={{ color: 'var(--ar-text-2)' }}>
               {item.name}
             </span>
           </button>
         ))}
       </div>
 
-      <div className="p-2 border-t border-gray-700 text-[10px] sm:text-xs text-gray-500 text-center">
-        タップで追加 · ドラッグで移動
+      <div className="p-2 text-center flex-shrink-0" style={{ borderTop: '1px solid var(--ar-border)' }}>
+        <p className="text-[10px]" style={{ color: 'var(--ar-text-muted)' }}>タップで追加 · ドラッグで移動</p>
       </div>
     </div>
   );

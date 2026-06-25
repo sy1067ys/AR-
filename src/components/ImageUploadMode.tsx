@@ -4,10 +4,7 @@ import * as tf from '@tensorflow/tfjs';
 import { Upload } from 'lucide-react';
 
 interface ImageUploadModeProps {
-  selectedItem: {
-    type: 'glasses' | 'necklace' | 'earrings' | 'hat' | null;
-    image: string | null;
-  };
+  selectedItem: { type: 'glasses' | 'necklace' | 'earrings' | 'hat' | null; image: string | null; };
 }
 
 export function ImageUploadMode({ selectedItem }: ImageUploadModeProps) {
@@ -19,93 +16,67 @@ export function ImageUploadMode({ selectedItem }: ImageUploadModeProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const loadModel = async () => {
+    (async () => {
       await tf.ready();
-      const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
-      const det = await faceLandmarksDetection.createDetector(model, {
-        runtime: 'mediapipe',
-        solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh',
-        refineLandmarks: true,
-      } as any);
+      const det = await faceLandmarksDetection.createDetector(
+        faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh,
+        { runtime: 'mediapipe', solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh', refineLandmarks: true } as any
+      );
       setDetector(det);
-    };
-    loadModel();
+    })();
   }, []);
 
-  useEffect(() => {
-    if (uploadedImage && detector) processImage();
-  }, [uploadedImage, selectedItem, detector]);
+  useEffect(() => { if (uploadedImage && detector) processImage(); }, [uploadedImage, selectedItem, detector]);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => setUploadedImage(e.target?.result as string);
-      reader.readAsDataURL(file);
-    }
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) { const r = new FileReader(); r.onload = (ev) => setUploadedImage(ev.target?.result as string); r.readAsDataURL(file); }
   };
 
   const processImage = async () => {
     if (!uploadedImage || !detector || !canvasRef.current || !imageRef.current) return;
     setIsProcessing(true);
-    const img = imageRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const img = imageRef.current, canvas = canvasRef.current, ctx = canvas.getContext('2d');
     if (!ctx) return;
-
     img.onload = async () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = img.width; canvas.height = img.height;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0);
-
       try {
         const faces = await detector.estimateFaces(img, { flipHorizontal: false });
-        if (faces.length > 0 && selectedItem.image && selectedItem.type) {
-          drawItem(ctx, faces[0], selectedItem.type, selectedItem.image);
-        }
+        if (faces.length > 0 && selectedItem.image && selectedItem.type) drawItem(ctx, faces[0], selectedItem.type, selectedItem.image);
       } catch {}
       setIsProcessing(false);
     };
   };
 
   const drawItem = (ctx: CanvasRenderingContext2D, face: faceLandmarksDetection.Face, type: string, imageUrl: string) => {
-    const kp = face.keypoints;
-    const img = new Image();
-    img.src = imageUrl;
-
+    const kp = face.keypoints, img = new Image(); img.src = imageUrl;
     if (type === 'glasses') {
-      const leftEye = kp[33], rightEye = kp[263];
-      const d = Math.sqrt(Math.pow(rightEye.x - leftEye.x, 2) + Math.pow(rightEye.y - leftEye.y, 2));
-      const w = d * 2.5, h = w * 0.4;
-      const cx = (leftEye.x + rightEye.x) / 2, cy = (leftEye.y + rightEye.y) / 2;
-      ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
-    } else if (type === 'necklace') {
-      const chin = kp[152];
-      ctx.drawImage(img, chin.x - 100, chin.y + 50, 200, 100);
-    } else if (type === 'earrings') {
-      const l = kp[234], r = kp[454];
-      ctx.drawImage(img, l.x - 20, l.y, 40, 40);
-      ctx.drawImage(img, r.x - 20, r.y, 40, 40);
-    } else if (type === 'hat') {
-      const fh = kp[10], le = kp[33], re = kp[263];
-      const fw = Math.abs(re.x - le.x) * 2.5;
-      const hw = fw * 1.3, hh = hw * 0.8;
-      ctx.drawImage(img, fh.x - hw / 2, fh.y - hh, hw, hh);
-    }
+      const l = kp[33], r = kp[263], d = Math.sqrt((r.x-l.x)**2+(r.y-l.y)**2), w = d*2.5, h = w*0.4;
+      ctx.drawImage(img, (l.x+r.x)/2-w/2, (l.y+r.y)/2-h/2, w, h);
+    } else if (type === 'necklace') { ctx.drawImage(img, kp[152].x-100, kp[152].y+50, 200, 100); }
+    else if (type === 'earrings') { ctx.drawImage(img, kp[234].x-20, kp[234].y, 40, 40); ctx.drawImage(img, kp[454].x-20, kp[454].y, 40, 40); }
+    else if (type === 'hat') { const fw = Math.abs(kp[263].x-kp[33].x)*2.5, hw = fw*1.3, hh = hw*0.8; ctx.drawImage(img, kp[10].x-hw/2, kp[10].y-hh, hw, hh); }
   };
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+    <div className="relative w-full h-full flex items-center justify-center" style={{ background: 'var(--ar-bg)' }}>
       {!uploadedImage ? (
         <div className="text-center p-6">
-          <Upload className="w-12 h-12 sm:w-20 sm:h-20 mx-auto text-blue-400 mb-3" />
-          <h3 className="text-lg sm:text-2xl font-bold text-white mb-1">写真をアップロード</h3>
-          <p className="text-xs sm:text-sm text-gray-400 mb-4">顔が写っている写真を選択</p>
+          <div
+            className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+            style={{ background: 'var(--ar-accent-glow)' }}
+          >
+            <Upload className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: 'var(--ar-accent)' }} />
+          </div>
+          <h3 className="text-lg sm:text-xl font-bold mb-1" style={{ color: 'var(--ar-text)' }}>写真をアップロード</h3>
+          <p className="text-xs mb-5" style={{ color: 'var(--ar-text-muted)' }}>顔が写っている写真を選択</p>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-6 py-3 bg-blue-600 text-white rounded-full font-bold text-sm sm:text-lg shadow-lg"
+            className="px-6 py-3 rounded-2xl font-bold text-sm text-white active:scale-95 transition-all"
+            style={{ background: 'linear-gradient(135deg, var(--ar-accent), var(--ar-accent-2))', boxShadow: '0 4px 20px var(--ar-accent-glow)' }}
           >
             写真を選択
           </button>
@@ -113,22 +84,23 @@ export function ImageUploadMode({ selectedItem }: ImageUploadModeProps) {
       ) : (
         <>
           <div className="w-full h-full flex items-center justify-center p-2">
-            <img ref={imageRef} src={uploadedImage} alt="Uploaded" className="hidden" />
-            <canvas ref={canvasRef} className="max-w-full max-h-full object-contain" />
+            <img ref={imageRef} src={uploadedImage} alt="" className="hidden" />
+            <canvas ref={canvasRef} className="max-w-full max-h-full object-contain rounded-xl" />
           </div>
-          <div className="absolute top-2 right-2">
+          <div className="absolute top-3 right-3">
             <button
               onClick={() => setUploadedImage(null)}
-              className="px-3 py-1.5 sm:px-6 sm:py-3 bg-white/90 text-gray-800 rounded-full shadow-lg text-xs sm:text-sm font-medium"
+              className="px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-md active:scale-95 transition-all"
+              style={{ background: 'var(--ar-glass)', color: 'var(--ar-text-2)', border: '1px solid var(--ar-glass-border)' }}
             >
               別の写真
             </button>
           </div>
           {isProcessing && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-              <div className="text-center text-white">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                <p className="text-sm">処理中...</p>
+            <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(15,17,23,0.7)' }}>
+              <div className="text-center">
+                <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin mx-auto mb-2" style={{ borderColor: 'var(--ar-accent)', borderTopColor: 'transparent' }} />
+                <p className="text-xs" style={{ color: 'var(--ar-text-muted)' }}>処理中...</p>
               </div>
             </div>
           )}

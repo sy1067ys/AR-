@@ -218,7 +218,7 @@ export function ARCamera({ selectedItem, onCapture }: ARCameraProps) {
               <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
             </svg>
             <h3 className="text-2xl font-bold mb-4">カメラアクセスエラー</h3>
-            <p className="text-lg mb-6 leading-relaxed">{cameraError}</p>
+            <p className="text-sm sm:text-lg mb-6 leading-relaxed">{cameraError}</p>
             <div className="space-y-3 text-sm text-left bg-black/20 rounded-lg p-4 mb-6">
               <p className="font-semibold">解決方法:</p>
               <ul className="list-disc list-inside space-y-2 ml-2">
@@ -250,10 +250,10 @@ export function ARCamera({ selectedItem, onCapture }: ARCameraProps) {
             style={{ transform: 'scaleX(-1)' }}
           />
           {hasPermission && !isModelLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-white">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                <p className="text-lg">顔認識モデルを読み込み中...</p>
+                <p className="text-sm sm:text-lg">顔認識モデルを読み込み中...</p>
               </div>
             </div>
           )}
@@ -273,7 +273,7 @@ export function ARCamera({ selectedItem, onCapture }: ARCameraProps) {
                     <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                   </svg>
                 </div>
-                <p className="text-lg">カメラへのアクセスを要求中...</p>
+                <p className="text-sm sm:text-lg">カメラへのアクセスを要求中...</p>
                 <p className="text-sm mt-2 text-gray-300">ブラウザの許可ダイアログで「許可」を選択してください</p>
               </div>
             </div>

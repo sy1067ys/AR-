@@ -209,7 +209,7 @@ export function RoomARMode({ onSave }: Props) {
         bg.src = roomPhoto;
       });
     } else {
-      ctx.fillStyle = '#1a1a2e';
+      ctx.fillStyle = '#0F1117';
       ctx.fillRect(0, 0, rect.width, rect.height);
     }
 
@@ -244,10 +244,14 @@ export function RoomARMode({ onSave }: Props) {
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
-      <div className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 bg-gray-900 border-b border-gray-700 flex-wrap text-xs sm:text-sm">
+      <div
+        className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 flex-wrap text-xs sm:text-sm flex-shrink-0"
+        style={{ background: 'var(--ar-surface)', borderBottom: '1px solid var(--ar-border)' }}
+      >
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-1 px-2 py-1.5 bg-indigo-600 text-white rounded-lg font-medium"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-medium text-white"
+          style={{ background: 'var(--ar-accent)' }}
         >
           <ImageIcon className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">部屋の写真を</span>読み込む
@@ -256,24 +260,31 @@ export function RoomARMode({ onSave }: Props) {
 
         {selectedItem && (
           <>
-            <div className="h-5 w-px bg-gray-600 hidden sm:block" />
+            <div className="h-5 w-px hidden sm:block" style={{ background: 'var(--ar-border)' }} />
             <div className="flex items-center gap-0.5 sm:gap-1">
-              <button onClick={() => scaleSelected(1.15)} className="p-1.5 bg-gray-700 text-white rounded" title="拡大">
-                <ZoomIn className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={() => scaleSelected(0.85)} className="p-1.5 bg-gray-700 text-white rounded" title="縮小">
-                <ZoomOut className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={() => rotateSelected(-15)} className="p-1.5 bg-gray-700 text-white rounded" title="左回転">
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={flipSelected} className="p-1.5 bg-gray-700 text-white rounded font-bold" title="左右反転">
-                ⇄
-              </button>
-              <button onClick={bringForward} className="p-1.5 bg-gray-700 text-white rounded" title="前面へ">
-                <Layers className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={removeSelected} className="p-1.5 bg-red-700 text-white rounded" title="削除">
+              {[
+                { fn: () => scaleSelected(1.15), icon: <ZoomIn className="w-3.5 h-3.5" />, title: '拡大' },
+                { fn: () => scaleSelected(0.85), icon: <ZoomOut className="w-3.5 h-3.5" />, title: '縮小' },
+                { fn: () => rotateSelected(-15), icon: <RotateCcw className="w-3.5 h-3.5" />, title: '左回転' },
+                { fn: flipSelected, icon: <span className="text-xs font-bold">⇄</span>, title: '反転' },
+                { fn: bringForward, icon: <Layers className="w-3.5 h-3.5" />, title: '前面' },
+              ].map(({ fn, icon, title }) => (
+                <button
+                  key={title}
+                  onClick={fn}
+                  className="p-1.5 rounded transition-all"
+                  style={{ background: 'var(--ar-surface-2)', color: 'var(--ar-text-2)' }}
+                  title={title}
+                >
+                  {icon}
+                </button>
+              ))}
+              <button
+                onClick={removeSelected}
+                className="p-1.5 rounded"
+                style={{ background: 'rgba(255,71,87,0.15)', color: '#FF4757' }}
+                title="削除"
+              >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -284,7 +295,8 @@ export function RoomARMode({ onSave }: Props) {
           {placedItems.length > 0 && (
             <button
               onClick={() => { setPlacedItems([]); setSelectedId(null); }}
-              className="flex items-center gap-1 px-2 py-1.5 bg-gray-700 text-gray-200 rounded text-xs"
+              className="flex items-center gap-1 px-2 py-1.5 rounded text-xs"
+              style={{ background: 'var(--ar-surface-2)', color: 'var(--ar-text-muted)' }}
             >
               <RotateCcw className="w-3 h-3" />
               リセット
@@ -292,7 +304,8 @@ export function RoomARMode({ onSave }: Props) {
           )}
           <button
             onClick={handleSave}
-            className="flex items-center gap-1 px-2 py-1.5 bg-green-600 text-white rounded-lg font-medium"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-medium text-white"
+            style={{ background: 'var(--ar-success)' }}
           >
             <Download className="w-3.5 h-3.5" />
             保存
@@ -304,7 +317,7 @@ export function RoomARMode({ onSave }: Props) {
       <div
         ref={containerRef}
         className="flex-1 relative overflow-hidden select-none touch-none"
-        style={{ background: roomPhoto ? 'transparent' : '#1a1a2e', cursor: dragState.kind === 'move' ? 'grabbing' : 'default' }}
+        style={{ background: roomPhoto ? 'transparent' : 'var(--ar-bg)', cursor: dragState.kind === 'move' ? 'grabbing' : 'default' }}
         onClick={(e) => {
           if ((e.target as HTMLElement) === containerRef.current) setSelectedId(null);
         }}
@@ -313,7 +326,7 @@ export function RoomARMode({ onSave }: Props) {
           <img src={roomPhoto} alt="Room" className="absolute inset-0 w-full h-full object-cover pointer-events-none" draggable={false} />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-gray-400 p-4">
-            <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-gray-800 flex items-center justify-center">
+            <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full  flex items-center justify-center">
               <ImageIcon className="w-8 h-8 sm:w-12 sm:h-12" />
             </div>
             <p className="text-sm sm:text-lg font-medium text-center">部屋の写真を読み込んでください</p>
