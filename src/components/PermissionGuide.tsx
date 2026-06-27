@@ -25,7 +25,7 @@ export function PermissionGuide({ onRequestPermission, onUseUploadMode, onUseRoo
             AR Try-On
           </h2>
           <p className="text-sm" style={{ color: 'var(--ar-text-muted)' }}>
-            バーチャルで試着、あなたの部屋をコーディネート
+            バーチャル試着で自由にコーディネート
           </p>
         </div>
 
