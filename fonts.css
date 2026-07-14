@@ -1,7 +1,53 @@
+import React from "react";
+import { createRoot } from "react-dom/client";
+import App from "./app/App.tsx";
+import "./styles/index.css";
 
-  import { createRoot } from "react-dom/client";
-  import App from "./app/App.tsx";
-  import "./styles/index.css";
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{
+          height: '100%', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          background: '#0F1117', color: '#F0F0F5', padding: '2rem',
+          fontFamily: 'system-ui', textAlign: 'center',
+        }}>
+          <h1 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
+            エラーが発生しました
+          </h1>
+          <p style={{ color: '#6B7194', fontSize: '0.875rem', marginBottom: '1rem', maxWidth: '400px' }}>
+            {this.state.error.message}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '0.75rem 2rem', borderRadius: '1rem',
+              background: '#7C6AFF', color: '#fff', border: 'none',
+              cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600,
+            }}
+          >
+            再読み込み
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
-  createRoot(document.getElementById("root")!).render(<App />);
-  
+createRoot(document.getElementById("root")!).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);

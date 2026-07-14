@@ -73,7 +73,8 @@ export function ImageItemPicker({ onCropComplete, onCancel, initialImage }: Imag
       ctx.font = '600 11px system-ui'; const tm = ctx.measureText(lbl);
       const lx = ox + s.x + s.w / 2, ly = oy + s.y - 14;
       ctx.fillStyle = 'rgba(124,106,255,0.9)';
-      ctx.beginPath(); ctx.roundRect(lx - tm.width / 2 - 6, ly - 8, tm.width + 12, 18, 6); ctx.fill();
+      const rx = lx - tm.width / 2 - 6, ry = ly - 8, rw = tm.width + 12, rh = 18, rr = 6;
+      ctx.beginPath(); ctx.moveTo(rx + rr, ry); ctx.lineTo(rx + rw - rr, ry); ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + rr); ctx.lineTo(rx + rw, ry + rh - rr); ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - rr, ry + rh); ctx.lineTo(rx + rr, ry + rh); ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - rr); ctx.lineTo(rx, ry + rr); ctx.quadraticCurveTo(rx, ry, rx + rr, ry); ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#fff'; ctx.fillText(lbl, lx - tm.width / 2, ly + 5);
     }
   }, [selection, dims]);
