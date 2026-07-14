@@ -45,7 +45,15 @@ export function ARCamera({ selectedItem, onCapture, facingMode = 'user' }: ARCam
   const physicsRef = useRef<PhysicsState>({ neckSwingAngle: 0, neckSwingVel: 0, earLAngle: 0, earLVel: 0, earRAngle: 0, earRVel: 0, prevCx: 0, prevCy: 0, prevAngle: 0, prevTime: 0, velX: 0, velY: 0, angularVel: 0 });
 
   // ===== Item offset (user-adjustable position) =====
-  const [offset, setOffset] = useState<ItemOffset>({ x: 0, y: 0, scale: 1 });
+  // Use ref as source of truth for the render loop (no re-render lag while dragging),
+  // mirror into state only for UI chrome (scale %, reset button visibility).
+  const offsetRef = useRef<ItemOffset>({ x: 0, y: 0, scale: 1 });
+  const [offset, setOffsetState] = useState<ItemOffset>({ x: 0, y: 0, scale: 1 });
+  const setOffset = useCallback((updater: ItemOffset | ((prev: ItemOffset) => ItemOffset)) => {
+    const next = typeof updater === 'function' ? (updater as (p: ItemOffset) => ItemOffset)(offsetRef.current) : updater;
+    offsetRef.current = next;      // instant — used by render loop this very frame
+    setOffsetState(next);           // async — updates UI chrome only
+  }, []);
   const [isDragging, setIsDragging] = useState(false);
   const [isLocked, setIsLocked] = useState(false); // lock position
   const dragStartRef = useRef({ x: 0, y: 0, offX: 0, offY: 0 });
@@ -59,7 +67,7 @@ export function ARCamera({ selectedItem, onCapture, facingMode = 'user' }: ARCam
       setOffset({ x: 0, y: 0, scale: 1 });
       prevItemRef.current = selectedItem.image;
     }
-  }, [selectedItem.image]);
+  }, [selectedItem.image, setOffset]);
 
   const SM = 0.3;
   const GRAVITY = 600; const DAMPING = 0.92; const SWING_SENS = 0.15;
@@ -101,8 +109,6 @@ export function ARCamera({ selectedItem, onCapture, facingMode = 'user' }: ARCam
   }, []);
 
   // ===== OFFSET READING (use ref for render loop) =====
-  const offsetRef = useRef(offset);
-  useEffect(() => { offsetRef.current = offset; }, [offset]);
   const lockedRef = useRef(isLocked);
   useEffect(() => { lockedRef.current = isLocked; }, [isLocked]);
 
@@ -128,73 +134,80 @@ export function ARCamera({ selectedItem, onCapture, facingMode = 'user' }: ARCam
   }, [detector, isModelLoaded, selectedItem]);
 
   // ===== DRAG & PINCH HANDLERS =====
+  const draggingRef = useRef(false);
+  // Convert a screen-pixel delta into a canvas-pixel delta.
+  // The front camera canvas is mirrored (scaleX(-1)), so a rightward finger
+  // move must become a leftward canvas move to feel natural.
   const getCanvasScale = () => {
     const c = canvasRef.current; if (!c) return 1;
     const rect = c.getBoundingClientRect();
     return c.width / rect.width;
   };
+  const mirrorX = () => (facingRef.current === 'user' ? -1 : 1);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (isLocked || !selectedItem.type) return;
-    e.stopPropagation();
+    if (lockedRef.current || !selectedItem.type) return;
     if (e.touches.length === 1) {
       const t = e.touches[0];
-      dragStartRef.current = { x: t.clientX, y: t.clientY, offX: offset.x, offY: offset.y };
+      dragStartRef.current = { x: t.clientX, y: t.clientY, offX: offsetRef.current.x, offY: offsetRef.current.y };
+      draggingRef.current = true;
       setIsDragging(true);
       setShowOffsetHint(true);
     } else if (e.touches.length === 2) {
       const dx = e.touches[1].clientX - e.touches[0].clientX;
       const dy = e.touches[1].clientY - e.touches[0].clientY;
-      pinchStartRef.current = { dist: Math.sqrt(dx * dx + dy * dy), scale: offset.scale };
+      pinchStartRef.current = { dist: Math.sqrt(dx * dx + dy * dy), scale: offsetRef.current.scale };
+      draggingRef.current = false; // pinch, not drag
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (isLocked || !selectedItem.type) return;
-    e.stopPropagation();
+    if (lockedRef.current || !selectedItem.type) return;
     e.preventDefault();
     const scale = getCanvasScale();
 
-    if (e.touches.length === 1 && isDragging) {
+    if (e.touches.length === 1 && draggingRef.current) {
       const t = e.touches[0];
-      const dx = (t.clientX - dragStartRef.current.x) * scale;
+      const dx = (t.clientX - dragStartRef.current.x) * scale * mirrorX();
       const dy = (t.clientY - dragStartRef.current.y) * scale;
-      setOffset(prev => ({ ...prev, x: dragStartRef.current.offX + dx, y: dragStartRef.current.offY + dy }));
+      setOffset({ ...offsetRef.current, x: dragStartRef.current.offX + dx, y: dragStartRef.current.offY + dy });
     } else if (e.touches.length === 2) {
       const dx = e.touches[1].clientX - e.touches[0].clientX;
       const dy = e.touches[1].clientY - e.touches[0].clientY;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const ratio = dist / pinchStartRef.current.dist;
-      setOffset(prev => ({ ...prev, scale: clamp(pinchStartRef.current.scale * ratio, 0.3, 3) }));
+      const ratio = dist / (pinchStartRef.current.dist || 1);
+      setOffset({ ...offsetRef.current, scale: clamp(pinchStartRef.current.scale * ratio, 0.3, 3) });
     }
   };
 
   const handleTouchEnd = () => {
+    draggingRef.current = false;
     setIsDragging(false);
     setTimeout(() => setShowOffsetHint(false), 2000);
   };
 
   // Mouse drag for desktop
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (isLocked || !selectedItem.type) return;
-    dragStartRef.current = { x: e.clientX, y: e.clientY, offX: offset.x, offY: offset.y };
+    if (lockedRef.current || !selectedItem.type) return;
+    dragStartRef.current = { x: e.clientX, y: e.clientY, offX: offsetRef.current.x, offY: offsetRef.current.y };
+    draggingRef.current = true;
     setIsDragging(true); setShowOffsetHint(true);
   };
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || isLocked) return;
+    if (!draggingRef.current || lockedRef.current) return;
     const scale = getCanvasScale();
-    const dx = (e.clientX - dragStartRef.current.x) * scale;
+    const dx = (e.clientX - dragStartRef.current.x) * scale * mirrorX();
     const dy = (e.clientY - dragStartRef.current.y) * scale;
-    setOffset(prev => ({ ...prev, x: dragStartRef.current.offX + dx, y: dragStartRef.current.offY + dy }));
+    setOffset({ ...offsetRef.current, x: dragStartRef.current.offX + dx, y: dragStartRef.current.offY + dy });
   };
-  const handleMouseUp = () => { setIsDragging(false); setTimeout(() => setShowOffsetHint(false), 2000); };
+  const handleMouseUp = () => { draggingRef.current = false; setIsDragging(false); setTimeout(() => setShowOffsetHint(false), 2000); };
 
   // Scroll wheel for scale on desktop
   const handleWheel = (e: React.WheelEvent) => {
-    if (isLocked || !selectedItem.type) return;
+    if (lockedRef.current || !selectedItem.type) return;
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.95 : 1.05;
-    setOffset(prev => ({ ...prev, scale: clamp(prev.scale * delta, 0.3, 3) }));
+    setOffset({ ...offsetRef.current, scale: clamp(offsetRef.current.scale * delta, 0.3, 3) });
   };
 
   const resetOffset = () => setOffset({ x: 0, y: 0, scale: 1 });
